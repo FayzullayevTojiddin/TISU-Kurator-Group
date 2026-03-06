@@ -15,7 +15,7 @@ class FacultyResource extends Resource
 {
     public static function canAccess(): bool
     {
-        return ! auth()->user()?->isCurator();
+        return auth()->user()?->isSuperAdmin() ?? false;
     }
 
     protected static ?string $model = Faculty::class;

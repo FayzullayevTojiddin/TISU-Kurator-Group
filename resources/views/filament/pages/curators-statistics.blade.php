@@ -56,30 +56,18 @@
             </div>
         </div>
 
-        {{-- ===== FAKULTET FILTERI ===== --}}
-        @if($this->faculties->count() > 1)
-            <div class="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                <div class="text-xs text-gray-400 dark:text-gray-500 font-medium mb-2">Fakultet:</div>
-                <div class="grid grid-cols-{{ min($this->faculties->count() + 1, 5) }} gap-2">
-                    <button
-                        wire:click="selectFaculty(null)"
-                        @class([
-                            'px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-center cursor-pointer',
-                            'bg-primary-600 text-white shadow-sm' => is_null($selectedFacultyId),
-                            'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600' => !is_null($selectedFacultyId),
-                        ])
-                    >Barchasi</button>
-                    @foreach($this->faculties as $faculty)
-                        <button
-                            wire:click="selectFaculty({{ $faculty->id }})"
-                            @class([
-                                'px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-center cursor-pointer',
-                                'bg-primary-600 text-white shadow-sm' => $selectedFacultyId === $faculty->id,
-                                'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600' => $selectedFacultyId !== $faculty->id,
-                            ])
-                        >{{ $faculty->name }}</button>
-                    @endforeach
-                </div>
+        {{-- ===== EXCEL YUKLAB OLISH ===== --}}
+        @if($this->curators->isNotEmpty())
+            <div class="flex justify-end">
+                <button
+                    wire:click="exportExcel"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm cursor-pointer"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Excel yuklab olish
+                </button>
             </div>
         @endif
 

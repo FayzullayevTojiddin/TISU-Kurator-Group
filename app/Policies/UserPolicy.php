@@ -8,14 +8,13 @@ class UserPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->isSuperAdmin() || $user->isDean();
+        return $user->isSuperAdmin();
     }
 
     public function view(User $user, User $model): bool
     {
         return match (true) {
             $user->isSuperAdmin() => true,
-            $user->isDean() => $model->faculty_id === $user->faculty_id,
             default => $user->id === $model->id,
         };
     }
@@ -27,11 +26,7 @@ class UserPolicy
 
     public function update(User $user, User $model): bool
     {
-        return match (true) {
-            $user->isSuperAdmin() => true,
-            $user->isDean() => $model->faculty_id === $user->faculty_id,
-            default => false,
-        };
+        return $user->isSuperAdmin();
     }
 
     public function delete(User $user, User $model): bool

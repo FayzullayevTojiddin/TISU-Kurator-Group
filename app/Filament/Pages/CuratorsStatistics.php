@@ -3,12 +3,17 @@
 namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
-use App\Models\Faculty;
 use App\Models\TaskSubmission;
 use App\Models\User;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CuratorsStatistics extends Page
 {
@@ -24,7 +29,6 @@ class CuratorsStatistics extends Page
 
     public int $selectedYear;
     public int $selectedMonth;
-    public ?int $selectedFacultyId = null;
 
     public function mount(): void
     {
@@ -36,7 +40,7 @@ class CuratorsStatistics extends Page
     {
         $user = auth()->user();
 
-        return $user->isSuperAdmin() || $user->isDean();
+        return $user->isSuperAdmin();
     }
 
     public function selectYear(int $year): void
@@ -49,11 +53,6 @@ class CuratorsStatistics extends Page
         $this->selectedMonth = $month;
     }
 
-    public function selectFaculty(?int $facultyId): void
-    {
-        $this->selectedFacultyId = $facultyId;
-    }
-
     public function getMonthsProperty(): array
     {
         return [
@@ -64,21 +63,6 @@ class CuratorsStatistics extends Page
         ];
     }
 
-    public function getFacultiesProperty(): Collection
-    {
-        $user = auth()->user();
-
-        if ($user->isSuperAdmin()) {
-            return Faculty::where('is_active', true)->get();
-        }
-
-        if ($user->isDean()) {
-            return Faculty::where('id', $user->faculty_id)->get();
-        }
-
-        return collect();
-    }
-
     public function getCuratorsProperty(): Collection
     {
         $user = auth()->user();
@@ -86,9 +70,7 @@ class CuratorsStatistics extends Page
         $curators = User::query()
             ->where('role', UserRole::Curator)
             ->where('is_active', true)
-            ->when($this->selectedFacultyId, fn ($q) => $q->where('faculty_id', $this->selectedFacultyId))
-            ->when($user->isDean(), fn ($q) => $q->where('faculty_id', $user->faculty_id))
-            ->with(['faculty', 'curatedGroups'])
+            ->with(['curatedGroups.faculty'])
             ->get();
 
         return $curators->map(function (User $curator) {
@@ -97,7 +79,7 @@ class CuratorsStatistics extends Page
             if ($groupIds->isEmpty()) {
                 return (object) [
                     'user' => $curator,
-                    'faculty_name' => $curator->faculty?->name ?? '—',
+                    'faculty_name' => $curator->curatedGroups->first()?->faculty?->name ?? '—',
                     'group_names' => '—',
                     'total' => 0,
                     'completed' => 0,
@@ -141,7 +123,7 @@ class CuratorsStatistics extends Page
 
             return (object) [
                 'user' => $curator,
-                'faculty_name' => $curator->faculty?->name ?? '—',
+                'faculty_name' => $curator->curatedGroups->first()?->faculty?->name ?? '—',
                 'group_names' => $curator->curatedGroups->pluck('name')->join(', '),
                 'total' => $total,
                 'completed' => $completed,
@@ -152,6 +134,79 @@ class CuratorsStatistics extends Page
                 'performance' => $performance,
             ];
         })->filter(fn ($c) => $c->total > 0)->sortByDesc('completion_rate')->values();
+    }
+
+    public function exportExcel(): StreamedResponse
+    {
+        $curators = $this->curators;
+        $months = $this->months;
+        $monthName = $months[$this->selectedMonth] ?? $this->selectedMonth;
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Kuratorlar statistikasi');
+
+        // Sarlavhalar
+        $headers = ['#', 'Kurator', 'Fakultet', 'Guruh(lar)', 'Jami', 'Bajarildi', 'Bajarilmadi', 'Tekshiruvda', 'Rad etildi', 'Bajarilish %'];
+        foreach ($headers as $col => $header) {
+            $cell = chr(65 + $col) . '1';
+            $sheet->setCellValue($cell, $header);
+        }
+
+        // Sarlavha stili
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4F46E5']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'D1D5DB']]],
+        ];
+        $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+        $sheet->getRowDimension(1)->setRowHeight(30);
+
+        // Ma'lumotlar
+        $row = 2;
+        foreach ($curators as $index => $curator) {
+            $sheet->setCellValue("A{$row}", $index + 1);
+            $sheet->setCellValue("B{$row}", $curator->user->name);
+            $sheet->setCellValue("C{$row}", $curator->faculty_name);
+            $sheet->setCellValue("D{$row}", $curator->group_names);
+            $sheet->setCellValue("E{$row}", $curator->total);
+            $sheet->setCellValue("F{$row}", $curator->completed);
+            $sheet->setCellValue("G{$row}", $curator->not_completed);
+            $sheet->setCellValue("H{$row}", $curator->under_review);
+            $sheet->setCellValue("I{$row}", $curator->rejected);
+            $sheet->setCellValue("J{$row}", $curator->completion_rate . '%');
+
+            // Satr rangini belgilash
+            $rowColor = match ($curator->performance) {
+                'good' => 'DCFCE7',
+                'bad' => 'FEE2E2',
+                default => 'FFFFFF',
+            };
+            $sheet->getStyle("A{$row}:J{$row}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $rowColor]],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'E5E7EB']]],
+                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+            ]);
+            $sheet->getStyle("E{$row}:J{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $row++;
+        }
+
+        // Ustun kengliklarini sozlash
+        $widths = [5, 25, 20, 30, 8, 10, 12, 12, 10, 12];
+        foreach ($widths as $i => $width) {
+            $sheet->getColumnDimension(chr(65 + $i))->setWidth($width);
+        }
+
+        $fileName = "Kuratorlar_statistikasi_{$this->selectedYear}_{$monthName}.xlsx";
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     public function getSummaryProperty(): array

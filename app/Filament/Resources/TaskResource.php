@@ -15,12 +15,17 @@ class TaskResource extends Resource
 {
     public static function shouldRegisterNavigation(): bool
     {
-        return ! auth()->user()?->isCurator();
+        return auth()->user()?->isSuperAdmin() ?? false;
+    }
+
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->isSuperAdmin() ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return ! auth()->user()?->isCurator();
+        return auth()->user()?->isSuperAdmin() ?? false;
     }
 
     protected static ?string $model = Task::class;

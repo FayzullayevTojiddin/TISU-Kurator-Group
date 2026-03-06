@@ -15,7 +15,7 @@ class UserResource extends Resource
 {
     public static function canAccess(): bool
     {
-        return ! auth()->user()?->isCurator();
+        return auth()->user()?->isSuperAdmin() ?? false;
     }
 
     protected static ?string $model = User::class;
@@ -44,14 +44,6 @@ class UserResource extends Resource
     {
         $query = parent::getEloquentQuery();
         $user = auth()->user();
-
-        if ($user->isDean()) {
-            return $query->where('faculty_id', $user->faculty_id);
-        }
-
-        if ($user->isCurator()) {
-            return $query->where('id', $user->id);
-        }
 
         return $query;
     }

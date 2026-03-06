@@ -21,7 +21,7 @@ class GroupResource extends Resource
 
     public static function canCreate(): bool
     {
-        return ! auth()->user()?->isCurator();
+        return auth()->user()?->isSuperAdmin() ?? false;
     }
 
     protected static ?string $model = Group::class;

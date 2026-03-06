@@ -16,7 +16,7 @@ class TaskSubmissionPolicy
     {
         return match (true) {
             $user->isSuperAdmin() => true,
-            $user->isDean() => $submission->group->faculty_id === $user->faculty_id,
+            $user->isDean() => in_array($submission->group->faculty_id, $user->getDeanFacultyIds()),
             $user->isCurator() => $submission->group->curator_id === $user->id,
             default => false,
         };
@@ -31,8 +31,9 @@ class TaskSubmissionPolicy
     {
         return match (true) {
             $user->isSuperAdmin() => true,
-            $user->isDean() => $submission->group->faculty_id === $user->faculty_id,
-            $user->isCurator() => $submission->group->curator_id === $user->id,
+            $user->isDean() => in_array($submission->group->faculty_id, $user->getDeanFacultyIds()),
+            $user->isCurator() => $submission->group->curator_id === $user->id
+                && $submission->status !== \App\Enums\TaskStatus::Completed,
             default => false,
         };
     }

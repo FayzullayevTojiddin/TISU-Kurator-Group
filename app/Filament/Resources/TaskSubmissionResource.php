@@ -15,7 +15,12 @@ class TaskSubmissionResource extends Resource
 {
     public static function shouldRegisterNavigation(): bool
     {
-        return ! auth()->user()?->isCurator();
+        return auth()->user()?->isSuperAdmin() ?? false;
+    }
+
+    public static function canAccess(): bool
+    {
+        return true;
     }
 
     protected static ?string $model = TaskSubmission::class;
@@ -44,10 +49,6 @@ class TaskSubmissionResource extends Resource
     {
         $query = parent::getEloquentQuery();
         $user = auth()->user();
-
-        if ($user->isDean()) {
-            return $query->whereHas('group', fn (Builder $q) => $q->where('faculty_id', $user->faculty_id));
-        }
 
         if ($user->isCurator()) {
             return $query->whereHas('group', fn (Builder $q) => $q->where('curator_id', $user->id));

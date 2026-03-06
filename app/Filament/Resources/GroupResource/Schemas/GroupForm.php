@@ -35,6 +35,7 @@ class GroupForm
                     Select::make('curator_id')
                         ->label('Kurator')
                         ->relationship('curator', 'name')
+                        ->searchable()
                         ->native(false)
                         ->placeholder('Tanlang')
                         ->disabled($isCurator),

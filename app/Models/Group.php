@@ -42,7 +42,7 @@ class Group extends Model
     {
         return match ($user->role->value) {
             'super_admin' => $query,
-            'dean' => $query->where('faculty_id', $user->faculty_id),
+            'dean' => $query->whereIn('faculty_id', Faculty::where('dean_id', $user->id)->pluck('id')),
             'curator' => $query->where('curator_id', $user->id),
         };
     }

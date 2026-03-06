@@ -16,7 +16,7 @@ class GroupPolicy
     {
         return match (true) {
             $user->isSuperAdmin() => true,
-            $user->isDean() => $group->faculty_id === $user->faculty_id,
+            $user->isDean() => in_array($group->faculty_id, $user->getDeanFacultyIds()),
             $user->isCurator() => $group->curator_id === $user->id,
             default => false,
         };
@@ -24,14 +24,14 @@ class GroupPolicy
 
     public function create(User $user): bool
     {
-        return $user->isSuperAdmin() || $user->isDean();
+        return $user->isSuperAdmin();
     }
 
     public function update(User $user, Group $group): bool
     {
         return match (true) {
             $user->isSuperAdmin() => true,
-            $user->isDean() => $group->faculty_id === $user->faculty_id,
+            $user->isDean() => in_array($group->faculty_id, $user->getDeanFacultyIds()),
             default => false,
         };
     }

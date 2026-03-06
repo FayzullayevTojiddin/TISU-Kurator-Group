@@ -17,6 +17,11 @@ class TaskSubmissionForm
         $isCurator = auth()->user()?->isCurator();
 
         return $schema->components([
+            Section::make(fn ($record) => $record?->task?->title ?? 'Vazifa')
+                ->description(fn ($record) => $record?->task?->description)
+                ->columnSpanFull()
+                ->visible(fn ($operation) => $operation === 'edit'),
+
             Section::make('Topshirish ma\'lumotlari')
                 ->columnSpan(1)
                 ->schema([
@@ -56,24 +61,21 @@ class TaskSubmissionForm
                         ->label('Izoh')
                         ->rows(3)
                         ->maxLength(2000)
-                        ->disabled(! $isCurator),
+                        ->disabled($isCurator),
 
                     DateTimePicker::make('submitted_at')
                         ->label('Topshirilgan vaqt')
                         ->native(false)
-                        ->disabled()
-                        ->visible(! $isCurator),
+                        ->disabled(),
 
                     DateTimePicker::make('reviewed_at')
                         ->label('Tekshirilgan vaqt')
                         ->native(false)
-                        ->disabled()
-                        ->visible(! $isCurator),
+                        ->disabled(),
 
                     Placeholder::make('reviewer_name')
                         ->label('Tekshiruvchi')
-                        ->content(fn ($record) => $record?->reviewer?->name ?? '—')
-                        ->visible(! $isCurator),
+                        ->content(fn ($record) => $record?->reviewer?->name ?? '—'),
                 ]),
         ])->columns(2);
     }

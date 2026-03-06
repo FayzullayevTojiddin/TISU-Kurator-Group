@@ -7,7 +7,6 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,7 +20,6 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'role',
-        'faculty_id',
         'is_active',
     ];
 
@@ -45,9 +43,14 @@ class User extends Authenticatable implements FilamentUser
         return $this->is_active;
     }
 
-    public function faculty(): BelongsTo
+    public function deanFaculties(): HasMany
     {
-        return $this->belongsTo(Faculty::class);
+        return $this->hasMany(Faculty::class, 'dean_id');
+    }
+
+    public function getDeanFacultyIds(): array
+    {
+        return $this->deanFaculties()->pluck('id')->toArray();
     }
 
     public function curatedGroups(): HasMany

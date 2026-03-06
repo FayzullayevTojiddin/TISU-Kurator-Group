@@ -5,10 +5,17 @@ namespace App\Filament\Pages;
 use App\Enums\TaskStatus;
 use App\Models\Faculty;
 use App\Models\Group;
+use App\Models\Task;
 use App\Models\TaskSubmission;
 use App\Models\Week;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CuratorDashboard extends Page
 {
@@ -36,6 +43,12 @@ class CuratorDashboard extends Page
     {
         $this->selectedYear = now()->year;
         $this->selectedMonth = now()->month;
+
+        $user = auth()->user();
+        if ($user->isDean()) {
+            $faculty = Faculty::where('dean_id', $user->id)->first();
+            $this->selectedFacultyId = $faculty?->id;
+        }
     }
 
     public function selectYear(int $year): void
@@ -92,7 +105,7 @@ class CuratorDashboard extends Page
     {
         return [
             1 => 'Dushanba', 2 => 'Seshanba', 3 => 'Chorshanba',
-            4 => 'Payshanba', 5 => 'Juma', 6 => 'Shanba', 7 => 'Yakshanba',
+            4 => 'Payshanba', 5 => 'Juma',
         ];
     }
 
@@ -112,7 +125,7 @@ class CuratorDashboard extends Page
         }
 
         if ($user->isDean()) {
-            return Faculty::where('id', $user->faculty_id)->get();
+            return Faculty::where('dean_id', $user->id)->get();
         }
 
         return collect();
@@ -172,15 +185,20 @@ class CuratorDashboard extends Page
 
         $user = auth()->user();
 
+        $taskIds = Task::where('week_id', $this->selectedWeekId)
+            ->where('day_of_week', $this->selectedDay)
+            ->pluck('id');
+
+        if ($taskIds->isEmpty()) {
+            return collect();
+        }
+
         $groups = Group::query()
             ->visibleTo($user)
             ->where('is_active', true)
             ->when($this->selectedFacultyId, fn ($q) => $q->where('faculty_id', $this->selectedFacultyId))
-            ->with(['faculty', 'curator', 'submissions' => function ($q) {
-                $q->whereHas('task', function ($tq) {
-                    $tq->where('week_id', $this->selectedWeekId)
-                        ->where('day_of_week', $this->selectedDay);
-                });
+            ->with(['faculty', 'curator', 'submissions' => function ($q) use ($taskIds) {
+                $q->whereIn('task_id', $taskIds);
             }])
             ->get();
 
@@ -229,5 +247,79 @@ class CuratorDashboard extends Page
             'under_review' => $stats['under_review'],
             'rejected' => $stats['rejected'],
         ];
+    }
+
+    public function exportExcel(): StreamedResponse
+    {
+        $groups = $this->allGroups;
+        $days = $this->days;
+        $dayName = $days[$this->selectedDay] ?? $this->selectedDay;
+        $week = Week::find($this->selectedWeekId);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Guruhlar holati');
+
+        // Sarlavhalar
+        $headers = ['#', 'Guruh', 'Fakultet', 'Kurator', 'Holat'];
+        foreach ($headers as $col => $header) {
+            $cell = chr(65 + $col) . '1';
+            $sheet->setCellValue($cell, $header);
+        }
+
+        $sheet->getStyle('A1:E1')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4F46E5']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'D1D5DB']]],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(30);
+
+        $statusLabels = [
+            'completed' => 'Bajarildi',
+            'not_completed' => 'Bajarilmadi',
+            'under_review' => 'Tekshiruvda',
+            'rejected' => 'Rad etildi',
+        ];
+
+        $statusColors = [
+            'completed' => 'DCFCE7',
+            'not_completed' => 'FEE2E2',
+            'under_review' => 'DBEAFE',
+            'rejected' => 'FFEDD5',
+        ];
+
+        $row = 2;
+        foreach ($groups as $index => $group) {
+            $sheet->setCellValue("A{$row}", $index + 1);
+            $sheet->setCellValue("B{$row}", $group->name);
+            $sheet->setCellValue("C{$row}", $group->faculty?->name ?? '—');
+            $sheet->setCellValue("D{$row}", $group->curator?->name ?? '—');
+            $sheet->setCellValue("E{$row}", $statusLabels[$group->aggregate_status] ?? $group->aggregate_status);
+
+            $rowColor = $statusColors[$group->aggregate_status] ?? 'FFFFFF';
+            $sheet->getStyle("A{$row}:E{$row}")->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $rowColor]],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'E5E7EB']]],
+                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+            ]);
+
+            $row++;
+        }
+
+        $widths = [5, 25, 20, 25, 15];
+        foreach ($widths as $i => $width) {
+            $sheet->getColumnDimension(chr(65 + $i))->setWidth($width);
+        }
+
+        $weekTitle = $week?->title ?? 'Hafta';
+        $fileName = "{$weekTitle}_{$dayName}.xlsx";
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 }

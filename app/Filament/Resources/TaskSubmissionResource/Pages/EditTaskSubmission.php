@@ -12,6 +12,21 @@ class EditTaskSubmission extends EditRecord
 {
     protected static string $resource = TaskSubmissionResource::class;
 
+    public function getTitle(): string
+    {
+        return $this->record->task?->title ?? 'Topshirish';
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (auth()->user()?->isCurator()) {
+            $data['status'] = TaskStatus::UnderReview;
+            $data['submitted_at'] = now();
+        }
+
+        return $data;
+    }
+
     protected function getHeaderActions(): array
     {
         $user = auth()->user();

@@ -34,6 +34,7 @@ class CuratorDashboard extends Page
     public ?int $selectedWeekId = null;
     public int $selectedDay = 1;
     public ?int $selectedFacultyId = null;
+    public ?int $selectedCourse = null;
     public string $selectedStatus = 'all';
 
     // Kurator uchun
@@ -79,6 +80,11 @@ class CuratorDashboard extends Page
     public function selectFaculty(?int $facultyId): void
     {
         $this->selectedFacultyId = $facultyId;
+    }
+
+    public function selectCourse(?int $course): void
+    {
+        $this->selectedCourse = $course;
     }
 
     public function selectStatus(string $status): void
@@ -175,6 +181,21 @@ class CuratorDashboard extends Page
         return $submissions->values();
     }
 
+    /**
+     * Guruh nomining oxirgi 2 raqamidan kursni aniqlash.
+     * Masalan: "25" -> 1-kurs (2025-yil qabul), "24" -> 2-kurs
+     */
+    protected function getCourseFromGroupName(string $groupName): ?int
+    {
+        if (preg_match('/(\d{2})$/', trim($groupName), $matches)) {
+            $suffix = (int) $matches[1];
+            $academicYearStart = $this->selectedMonth >= 9 ? $this->selectedYear : $this->selectedYear - 1;
+            $course = $academicYearStart - (2000 + $suffix) + 1;
+            return $course > 0 && $course <= 4 ? $course : null;
+        }
+        return null;
+    }
+
     // ========== ADMIN/DEAN UCHUN ==========
 
     public function getAllGroupsProperty(): Collection
@@ -201,6 +222,12 @@ class CuratorDashboard extends Page
                 $q->whereIn('task_id', $taskIds);
             }])
             ->get();
+
+        if ($this->selectedCourse) {
+            $groups = $groups->filter(function (Group $group) {
+                return $this->getCourseFromGroupName($group->name) === $this->selectedCourse;
+            })->values();
+        }
 
         $groups->each(function (Group $group) {
             $submission = $group->submissions->first();

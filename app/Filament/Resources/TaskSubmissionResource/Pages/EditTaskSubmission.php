@@ -41,7 +41,7 @@ class EditTaskSubmission extends EditRecord
                 ->modalHeading('Topshiriqni tasdiqlash')
                 ->modalDescription('Ushbu topshiriqni tasdiqlashni xohlaysizmi?')
                 ->modalSubmitActionLabel('Tasdiqlash')
-                ->visible(fn () => $canReview && $this->record->status !== TaskStatus::Completed)
+                ->visible(fn () => $canReview && in_array($this->record->status, [TaskStatus::UnderReview, TaskStatus::Rejected]))
                 ->action(function () {
                     $this->record->update([
                         'status' => TaskStatus::Completed,
@@ -51,10 +51,28 @@ class EditTaskSubmission extends EditRecord
                     $this->refreshFormData(['status', 'reviewer_id', 'reviewed_at']);
                 }),
 
-            Action::make('reject')
-                ->label('Bekor qilish')
+            Action::make('reject_submission')
+                ->label('Rad etish')
                 ->color('danger')
                 ->icon('heroicon-o-x-circle')
+                ->requiresConfirmation()
+                ->modalHeading('Topshiriqni rad etish')
+                ->modalDescription('Ushbu topshiriqni rad etishni xohlaysizmi?')
+                ->modalSubmitActionLabel('Rad etish')
+                ->visible(fn () => $canReview && $this->record->status === TaskStatus::UnderReview)
+                ->action(function () {
+                    $this->record->update([
+                        'status' => TaskStatus::Rejected,
+                        'reviewer_id' => auth()->id(),
+                        'reviewed_at' => now(),
+                    ]);
+                    $this->refreshFormData(['status', 'reviewer_id', 'reviewed_at']);
+                }),
+
+            Action::make('revoke_approval')
+                ->label('Bekor qilish')
+                ->color('warning')
+                ->icon('heroicon-o-arrow-uturn-left')
                 ->requiresConfirmation()
                 ->modalHeading('Tasdiqlashni bekor qilish')
                 ->modalDescription('Ushbu topshiriq tasdiqlashini bekor qilishni xohlaysizmi?')
@@ -62,7 +80,7 @@ class EditTaskSubmission extends EditRecord
                 ->visible(fn () => $canReview && $this->record->status === TaskStatus::Completed)
                 ->action(function () {
                     $this->record->update([
-                        'status' => TaskStatus::NotCompleted,
+                        'status' => TaskStatus::UnderReview,
                         'reviewer_id' => null,
                         'reviewed_at' => null,
                     ]);

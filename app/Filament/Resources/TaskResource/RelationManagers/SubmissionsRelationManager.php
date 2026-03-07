@@ -32,6 +32,11 @@ class SubmissionsRelationManager extends RelationManager
                     ->searchable()
                     ->alignCenter(),
 
+                TextColumn::make('group.curator.name')
+                    ->label('Kurator')
+                    ->searchable()
+                    ->alignCenter(),
+
                 TextColumn::make('status')
                     ->label('Holat')
                     ->formatStateUsing(fn (TaskStatus $state) => $state->label())

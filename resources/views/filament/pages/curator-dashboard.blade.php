@@ -192,6 +192,29 @@
                         @endforeach
                     </div>
 
+                    {{-- KURS TANLASH --}}
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-medium text-gray-600 dark:text-gray-400 mr-1">Kurs:</span>
+                        <button
+                            wire:click="selectCourse(null)"
+                            @class([
+                                'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
+                                'bg-primary-600 text-white shadow-md ring-2 ring-primary-400' => is_null($selectedCourse),
+                                'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700' => !is_null($selectedCourse),
+                            ])
+                        >Barchasi</button>
+                        @foreach(range(1, 4) as $course)
+                            <button
+                                wire:click="selectCourse({{ $course }})"
+                                @class([
+                                    'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
+                                    'bg-primary-600 text-white shadow-md ring-2 ring-primary-400' => $selectedCourse === $course,
+                                    'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700' => $selectedCourse !== $course,
+                                ])
+                            >{{ $course }}-kurs</button>
+                        @endforeach
+                    </div>
+
                     {{-- STATISTIKA --}}
                     <div class="grid grid-cols-4 gap-3">
                         <div class="rounded-xl p-4 text-center border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
@@ -273,8 +296,9 @@
                     <div class="max-h-[520px] overflow-y-auto rounded-xl pr-1">
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                         @forelse($this->groups as $group)
+                            @php $submission = $group->submissions->first(); @endphp
                             <a
-                                href="{{ route('filament.admin.resources.groups.edit', $group) }}"
+                                href="{{ $submission ? route('filament.admin.resources.task-submissions.edit', $submission) : route('filament.admin.resources.groups.edit', $group) }}"
                                 wire:navigate
                                 @class([
                                     'block p-4 rounded-xl border-l-4 transition-all duration-200 hover:shadow-lg group bg-white dark:bg-gray-800',
@@ -419,6 +443,29 @@
                     </div>
 
                     <div class="col-span-4 space-y-4">
+                        {{-- KURS TANLASH --}}
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-gray-600 dark:text-gray-400 mr-1">Kurs:</span>
+                            <button
+                                wire:click="selectCourse(null)"
+                                @class([
+                                    'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
+                                    'bg-primary-600 text-white shadow-md ring-2 ring-primary-400' => is_null($selectedCourse),
+                                    'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700' => !is_null($selectedCourse),
+                                ])
+                            >Barchasi</button>
+                            @foreach(range(1, 4) as $course)
+                                <button
+                                    wire:click="selectCourse({{ $course }})"
+                                    @class([
+                                        'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
+                                        'bg-primary-600 text-white shadow-md ring-2 ring-primary-400' => $selectedCourse === $course,
+                                        'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700' => $selectedCourse !== $course,
+                                    ])
+                                >{{ $course }}-kurs</button>
+                            @endforeach
+                        </div>
+
                         {{-- STATISTIKA --}}
                         <div class="grid grid-cols-4 gap-3">
                             <div class="rounded-xl p-4 text-center border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
@@ -527,8 +574,9 @@
                         <div class="max-h-[520px] overflow-y-auto rounded-xl pr-1">
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                             @forelse($this->groups as $group)
+                                @php $submission = $group->submissions->first(); @endphp
                                 <a
-                                    href="{{ route('filament.admin.resources.groups.edit', $group) }}"
+                                    href="{{ $submission ? route('filament.admin.resources.task-submissions.edit', $submission) : route('filament.admin.resources.groups.edit', $group) }}"
                                     wire:navigate
                                     @class([
                                         'block p-4 rounded-xl border-l-4 transition-all duration-200 hover:shadow-lg group bg-white dark:bg-gray-800',

@@ -45,13 +45,13 @@ class TaskSubmissionForm
                         ->label('Tavsif')
                         ->rows(3)
                         ->maxLength(2000)
-                        ->disabled(! $isCurator),
+                        ->disabled(fn ($record) => ! $isCurator || ($isCurator && $record?->status === \App\Enums\TaskStatus::Completed)),
 
                     FileUpload::make('files')
                         ->label('Fayllar')
                         ->multiple()
                         ->directory('submissions')
-                        ->disabled(! $isCurator),
+                        ->disabled(fn ($record) => ! $isCurator || ($isCurator && $record?->status === \App\Enums\TaskStatus::Completed)),
                 ]),
 
             Section::make('Tekshiruv va izoh')

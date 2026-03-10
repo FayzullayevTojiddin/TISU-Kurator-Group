@@ -12,6 +12,12 @@ class EditTaskSubmission extends EditRecord
 {
     protected static string $resource = TaskSubmissionResource::class;
 
+    protected function authorizeAccess(): void
+    {
+        // Use 'view' policy instead of 'update' so curators can see completed submissions
+        abort_unless(auth()->user()?->can('view', $this->getRecord()), 403);
+    }
+
     public function getTitle(): string
     {
         return $this->record->task?->title ?? 'Topshirish';
@@ -90,6 +96,17 @@ class EditTaskSubmission extends EditRecord
             DeleteAction::make()
                 ->visible($canReview),
         ];
+    }
+
+    protected function getSaveFormAction(): \Filament\Actions\Action
+    {
+        $action = parent::getSaveFormAction();
+
+        if (auth()->user()?->isCurator() && $this->record->status === TaskStatus::Completed) {
+            $action->hidden();
+        }
+
+        return $action;
     }
 
     protected function getRedirectUrl(): string

@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Enums\UserRole;
 use App\Models\TaskSubmission;
 use App\Models\User;
+use App\Models\Week;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +30,7 @@ class CuratorsStatistics extends Page
 
     public int $selectedYear;
     public int $selectedMonth;
+    public ?int $selectedWeek = null;
 
     public function mount(): void
     {
@@ -51,6 +53,21 @@ class CuratorsStatistics extends Page
     public function selectMonth(int $month): void
     {
         $this->selectedMonth = $month;
+        $this->selectedWeek = null;
+    }
+
+    public function selectWeek(?int $week): void
+    {
+        $this->selectedWeek = $week;
+    }
+
+    public function getWeeksProperty(): Collection
+    {
+        return Week::query()
+            ->where('year', $this->selectedYear)
+            ->where('month', $this->selectedMonth)
+            ->orderBy('week_number')
+            ->get();
     }
 
     public function getMonthsProperty(): array
@@ -96,6 +113,9 @@ class CuratorsStatistics extends Page
                 ->whereHas('task.week', function ($q) {
                     $q->where('year', $this->selectedYear)
                       ->where('month', $this->selectedMonth);
+                    if ($this->selectedWeek !== null) {
+                        $q->where('week_number', $this->selectedWeek);
+                    }
                 })
                 ->select('status', DB::raw('COUNT(*) as count'))
                 ->groupBy('status')

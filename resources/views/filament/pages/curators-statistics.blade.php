@@ -36,6 +36,31 @@
             @endforeach
         </div>
 
+        {{-- ===== HAFTA TANLASH ===== --}}
+        @if($this->weeks->isNotEmpty())
+            <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400 mr-1">Hafta:</span>
+                <button
+                    wire:click="selectWeek(null)"
+                    @class([
+                        'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
+                        'bg-primary-600 text-white shadow-md ring-2 ring-primary-400' => $selectedWeek === null,
+                        'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700' => $selectedWeek !== null,
+                    ])
+                >Barchasi</button>
+                @foreach($this->weeks as $week)
+                    <button
+                        wire:click="selectWeek({{ $week->week_number }})"
+                        @class([
+                            'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
+                            'bg-primary-600 text-white shadow-md ring-2 ring-primary-400' => $selectedWeek === $week->week_number,
+                            'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700' => $selectedWeek !== $week->week_number,
+                        ])
+                    >{{ $week->week_number }}-hafta</button>
+                @endforeach
+            </div>
+        @endif
+
         {{-- ===== UMUMIY STATISTIKA KARTOCHKALARI ===== --}}
         <div class="grid grid-cols-4 gap-3">
             <div class="rounded-xl p-4 text-center border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">

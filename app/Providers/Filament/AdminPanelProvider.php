@@ -48,15 +48,21 @@ class AdminPanelProvider extends PanelProvider
                 AccountWidget::class,
             ])
             ->renderHook(
-                PanelsRenderHook::SIDEBAR_FOOTER,
+                PanelsRenderHook::SIDEBAR_NAV_END,
                 fn (): string => Blade::render('
-                    <form method="POST" action="{{ filament()->getLogoutUrl() }}" class="mb-4 px-3">
-                        @csrf
-                        <button type="submit" class="flex items-center gap-2 w-full text-sm font-medium text-danger-600 hover:text-danger-500 no-underline" style="text-decoration: none;">
-                            <x-filament::icon icon="heroicon-o-arrow-left-start-on-rectangle" class="h-5 w-5" />
-                            Chiqish
-                        </button>
-                    </form>
+                    <div class="fi-sidebar-group mt-2 border-t border-gray-200 pt-2 dark:border-white/10">
+                        <ul class="fi-sidebar-group-items flex flex-col gap-y-1">
+                            <li>
+                                <form method="POST" action="{{ filament()->getLogoutUrl() }}">
+                                    @csrf
+                                    <button type="submit" class="fi-sidebar-item-button relative flex items-center justify-center gap-x-3 rounded-lg px-2 py-2 text-sm text-danger-600 outline-none transition duration-75 hover:bg-gray-100 focus-visible:bg-gray-100 dark:text-danger-400 dark:hover:bg-white/5 dark:focus-visible:bg-white/5 w-full" style="text-decoration: none;">
+                                        <x-filament::icon icon="heroicon-o-arrow-left-start-on-rectangle" class="fi-sidebar-item-icon h-6 w-6" />
+                                        <span class="fi-sidebar-item-label flex-1 truncate text-start">Chiqish</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 '),
             )
             ->middleware([

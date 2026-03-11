@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\UserRole;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\Schemas\UserForm;
 use App\Filament\Resources\UserResource\Tables\UsersTable;
@@ -15,7 +16,9 @@ class UserResource extends Resource
 {
     public static function canAccess(): bool
     {
-        return auth()->user()?->isSuperAdmin() ?? false;
+        $user = auth()->user();
+
+        return $user?->isSuperAdmin() || $user?->isDean();
     }
 
     protected static ?string $model = User::class;
@@ -44,6 +47,10 @@ class UserResource extends Resource
     {
         $query = parent::getEloquentQuery();
         $user = auth()->user();
+
+        if ($user->isDean()) {
+            $query->where('role', UserRole::Curator);
+        }
 
         return $query;
     }

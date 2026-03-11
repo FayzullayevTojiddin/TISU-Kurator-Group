@@ -44,7 +44,8 @@ class UsersTable
                         UserRole::Dean => 'warning',
                         UserRole::Curator => 'info',
                     })
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
 
                 ToggleColumn::make('is_active')
                     ->label('Faol')
@@ -64,15 +65,17 @@ class UsersTable
                         fn (UserRole $role) => [$role->value => $role->label()]
                     ))
                     ->placeholder('Barchasi')
-                    ->native(false),
-
+                    ->native(false)
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
             ])
             ->recordActions([
                 EditAction::make()->iconButton(),
-                DeleteAction::make()->iconButton(),
+                DeleteAction::make()->iconButton()
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
             ])
             ->bulkActions([
-                DeleteBulkAction::make(),
+                DeleteBulkAction::make()
+                    ->visible(fn () => auth()->user()->isSuperAdmin()),
             ]);
     }
 }

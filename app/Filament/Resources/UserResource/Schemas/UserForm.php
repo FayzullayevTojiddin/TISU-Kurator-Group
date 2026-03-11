@@ -38,9 +38,20 @@ class UserForm
 
                     Select::make('role')
                         ->label('Rol')
-                        ->options(collect(UserRole::cases())->mapWithKeys(
-                            fn (UserRole $role) => [$role->value => $role->label()]
-                        ))
+                        ->options(function () {
+                            $user = auth()->user();
+
+                            if ($user->isDean()) {
+                                return [UserRole::Curator->value => UserRole::Curator->label()];
+                            }
+
+                            return collect(UserRole::cases())->mapWithKeys(
+                                fn (UserRole $role) => [$role->value => $role->label()]
+                            );
+                        })
+                        ->default(fn () => auth()->user()->isDean() ? UserRole::Curator->value : null)
+                        ->disabled(fn () => auth()->user()->isDean())
+                        ->dehydrated()
                         ->required()
                         ->native(false),
 

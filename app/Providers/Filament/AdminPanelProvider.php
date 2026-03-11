@@ -49,14 +49,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 PanelsRenderHook::SIDEBAR_FOOTER,
-                fn (): string => Blade::render('<x-filament::link
-                    :href="filament()->getLogoutUrl()"
-                    icon="heroicon-o-arrow-left-start-on-rectangle"
-                    color="danger"
-                    class="w-full justify-start px-3 py-2"
-                >
-                    Chiqish
-                </x-filament::link>'),
+                fn (): string => Blade::render('
+                    <form method="POST" action="{{ filament()->getLogoutUrl() }}" class="mb-4 px-3">
+                        @csrf
+                        <button type="submit" class="flex items-center gap-2 w-full text-sm font-medium text-danger-600 hover:text-danger-500 no-underline" style="text-decoration: none;">
+                            <x-filament::icon icon="heroicon-o-arrow-left-start-on-rectangle" class="h-5 w-5" />
+                            Chiqish
+                        </button>
+                    </form>
+                '),
             )
             ->middleware([
                 EncryptCookies::class,
